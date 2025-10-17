@@ -79,11 +79,3 @@ server/assets/full/*
 ################################################################################
 web/**/dist/
 web/**/.vite/
-
-# Optional: Yarn Berry artifacts (safe if you switch to Yarn later)
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
