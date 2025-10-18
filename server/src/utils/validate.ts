@@ -1,26 +1,65 @@
-export function toPositiveInt(value: unknown, name: string): number {
-    const n = typeof value === 'string' ? Number.parseInt(value, 10) : Number(value);
-    if (!Number.isFinite(n) || n <= 0) {
-      const err: any = new Error(`Invalid ${name}: must be a positive integer`);
-      err.status = 400;
-      err.details = { [name]: value };
-      throw err;
-    }
-    return n;
+
+export type ValidParams =
+  | { ok: true; filename: string; width: number; height: number }
+  | { ok: false; status: 400 | 404; message: string };
+
+const NUM_RE = /^\d+$/;
+const NAME_RE = /^[a-z]+$/i;
+
+export function validateQuery(q: any): ValidParams {
+  const { filename, width, height } = q ?? {};
+
+  if (!filename || typeof filename !== 'string') {
+    return { ok: false, status: 400, message: 'Missing "filename".' };
   }
-  
-  export function validateQuery(q: Record<string, unknown>): {
-    filename: string; width: number; height: number
-  } {
-    const filename = typeof q.filename === 'string' && q.filename.trim().length > 0 ? q.filename.trim() : null;
-    if (!filename) {
-      const err: any = new Error('Invalid filename');
-      err.status = 400;
-      err.details = { filename: q.filename };
-      throw err;
-    }
-    const width = toPositiveInt(q.width, 'width');
-    const height = toPositiveInt(q.height, 'height');
-    return { filename, width, height };
+  if (!NAME_RE.test(filename)) {
+    return {
+      ok: false,
+      status: 400,
+      message: 'Invalid "filename": use letters only (e.g., fjord).',
+    };
   }
-  
+
+  if (width === undefined) {
+    return { ok: false, status: 400, message: 'Missing "width".' };
+  }
+  if (!NUM_RE.test(String(width))) {
+    return {
+      ok: false,
+      status: 400,
+      message: 'Invalid "width": must be a positive integer.',
+    };
+  }
+
+  if (height === undefined) {
+    return { ok: false, status: 400, message: 'Missing "height".' };
+  }
+  if (!NUM_RE.test(String(height))) {
+    return {
+      ok: false,
+      status: 400,
+      message: 'Invalid "height": must be a positive integer.',
+    };
+  }
+
+  const w = Number(width);
+  const h = Number(height);
+  if (w <= 0 || h <= 0) {
+    return {
+      ok: false,
+      status: 400,
+      message: 'Invalid dimensions: "width" and "height" must be > 0.',
+    };
+  }
+
+  const MAX = 5000;
+  if (w > MAX || h > MAX) {
+    return {
+      ok: false,
+      status: 400,
+      message: `Dimensions too large. Max allowed is ${MAX}x${MAX}.`,
+    };
+  }
+
+  return { ok: true, filename, width: w, height: h };
+}

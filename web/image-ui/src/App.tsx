@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Logo from './components/Logo';
 import Spinner from './components/Spinner';
 import TransitionImage from './components/TransitionImage';
-import { apiBaseUrl, fetchImageList, buildImageUrl } from './lib/api';
+import { apiBaseUrl, fetchImageList, buildImageUrl, fetchImage } from './lib/api';
 
 export default function App() {
   const [images, setImages] = useState<string[]>([]);
@@ -12,9 +12,9 @@ export default function App() {
 
   const [lockRatio, setLockRatio] = useState(true);
   const ratio = useMemo(() => width / height, [width, height]);
+  const [apiUrl, setApiUrl] = useState<string | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
-  
-  const [url, setUrl] = useState<string | null>(null);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,10 @@ export default function App() {
     fetchImageList().then(setImages).catch(() => setImages([]));
   }, []);
 
-  const canGenerate = useMemo(() => !!filename && width > 0 && height > 0, [filename, width, height]);
+  const canGenerate = useMemo(
+    () => !!filename && width > 0 && height > 0,
+    [filename, width, height]
+  );
 
   const onWidth = (val: number) => {
     setWidth(val);
@@ -38,10 +41,18 @@ export default function App() {
     setError(null);
     setLoading(true);
     setNatural(null);
+
     try {
       const u = buildImageUrl(filename, width, height);
-      setUrl(u);
+      setApiUrl(u);
+
+      const blob = await fetchImage(u); 
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      const objectUrl = URL.createObjectURL(blob);
+      setBlobUrl(objectUrl);
     } catch (e: any) {
+      setBlobUrl(null);
+      setApiUrl(null);
       setError(e?.message || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -49,9 +60,20 @@ export default function App() {
   };
 
   const onCopy = async () => {
-    if (!url) return;
-    await navigator.clipboard.writeText(url);
-    alert('Copied!');
+    if (!apiUrl) return;
+    try {
+      await navigator.clipboard.writeText(apiUrl);
+      alert('Copied!');
+    } catch {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = apiUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('Copied!');
+    }
   };
 
   return (
@@ -63,7 +85,8 @@ export default function App() {
           <a
             href={apiBaseUrl()}
             className="text-sm text-muted hover:text-foreground underline underline-offset-4"
-            target="_blank" rel="noreferrer"
+            target="_blank"
+            rel="noreferrer"
           >
             API Base
           </a>
@@ -71,15 +94,23 @@ export default function App() {
       </header>
 
       <main className="max-w-6xl mx-auto px-5 grid lg:grid-cols-2 gap-6 pb-16">
+        {/* Request */}
         <section className="card">
           <h2 className="text-lg mb-4 font-medium">Request</h2>
           <div className="space-y-4">
             <div>
               <label className="block mb-1 text-sm text-muted">Filename</label>
-              <select className="select" value={filename} onChange={(e) => setFilename(e.target.value)}>
+              <select
+                className="select"
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                aria-label="Choose original image"
+              >
                 <option value="">Select an image…</option>
                 {images.map((n) => (
-                  <option key={n} value={n}>{n}.jpg</option>
+                  <option key={n} value={n}>
+                    {n}.jpg
+                  </option>
                 ))}
               </select>
               <p className="mt-1 text-xs text-muted">
@@ -91,7 +122,8 @@ export default function App() {
               <div>
                 <label className="block mb-1 text-sm text-muted">Width (px)</label>
                 <input
-                  type="number" min={1}
+                  type="number"
+                  min={1}
                   className="input"
                   value={width}
                   onChange={(e) => onWidth(parseInt(e.target.value || '0', 10))}
@@ -100,7 +132,8 @@ export default function App() {
               <div>
                 <label className="block mb-1 text-sm text-muted">Height (px)</label>
                 <input
-                  type="number" min={1}
+                  type="number"
+                  min={1}
                   className="input"
                   value={height}
                   onChange={(e) => onHeight(parseInt(e.target.value || '0', 10))}
@@ -109,15 +142,27 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <button onClick={() => setLockRatio((v) => !v)} className="btn bg-background border border-white/10">
+              <button
+                onClick={() => setLockRatio((v) => !v)}
+                className="btn bg-background border border-white/10"
+                aria-pressed={lockRatio}
+              >
                 {lockRatio ? 'Unlock ratio' : 'Lock ratio'}
               </button>
-              {[{w:200,h:200},{w:400,h:300},{w:800,h:600},{w:1200,h:800}].map(p => (
-                <button key={`${p.w}x${p.h}`} onClick={() => { setWidth(p.w); setHeight(p.h); }}
-                        className="btn bg-primary/20 border border-primary/30">
-                  {p.w}×{p.h}
-                </button>
-              ))}
+              {[{ w: 200, h: 200 }, { w: 400, h: 300 }, { w: 800, h: 600 }, { w: 1200, h: 800 }].map(
+                (p) => (
+                  <button
+                    key={`${p.w}x${p.h}`}
+                    onClick={() => {
+                      setWidth(p.w);
+                      setHeight(p.h);
+                    }}
+                    className="btn bg-primary/20 border border-primary/30"
+                  >
+                    {p.w}×{p.h}
+                  </button>
+                )
+              )}
             </div>
 
             {/* action */}
@@ -128,7 +173,16 @@ export default function App() {
             >
               {loading ? 'Processing…' : 'Generate'}
             </button>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+
+            {error && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="rounded-md border border-red-500 bg-red-50 px-3 py-2 text-sm text-red-800"
+              >
+                {error}
+              </div>
+            )}
           </div>
         </section>
 
@@ -136,36 +190,38 @@ export default function App() {
         <section className="card">
           <h2 className="text-lg mb-4 font-medium">Preview</h2>
 
-          {!url ? (
+          {!blobUrl ? (
             <div className="space-y-3">
               <div className="rounded-2xl overflow-hidden border border-white/10">
                 <div className="h-64 shimmer" />
               </div>
-              <Spinner label="Waiting for your first generate…" />
+              <Spinner label={loading ? 'Processing…' : 'Waiting for your first generate…'} />
             </div>
           ) : (
             <div className="space-y-4">
-              <TransitionImage
-                src={url}
-                alt="Processed"
-                onLoaded={(sz) => setNatural(sz)}
-              />
+              <TransitionImage src={blobUrl} alt="Processed" onLoaded={(sz) => setNatural(sz)} />
               <div className="flex gap-2 flex-wrap">
-                <a href={url} download className="btn bg-secondary text-black">Download</a>
-                <button onClick={onCopy} className="btn bg-background border border-white/10">Copy URL</button>
+                <a
+                  href={apiUrl ?? '#'}
+                  download
+                  className="btn bg-secondary text-black disabled:opacity-50"
+                  aria-disabled={!apiUrl}
+                >
+                  Download
+                </a>
+                <button onClick={onCopy} className="btn bg-background border border-white/10" disabled={!apiUrl}>
+                  Copy URL
+                </button>
               </div>
               <div className="text-sm text-muted flex items-center gap-3">
                 {natural && <span>Actual: {natural.w}×{natural.h}px</span>}
                 <span className="opacity-50">•</span>
-                <code className="break-all">{url}</code>
+                <code className="break-all">{apiUrl}</code>
               </div>
             </div>
           )}
         </section>
       </main>
-
-      
-    
     </div>
   );
 }

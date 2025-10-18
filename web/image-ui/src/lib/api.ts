@@ -16,4 +16,15 @@ export function apiBaseUrl(): string {
     u.searchParams.set('height', String(height));
     return u.toString();
   }
-  
+  export async function fetchImage(url: string): Promise<Blob> {
+    const res = await fetch(url);
+    if (!res.ok) {
+      let msg = `Request failed (${res.status})`;
+      try {
+        const data = await res.json();
+        if (data?.error) msg = data.error;
+      } catch {}
+      throw new Error(msg);
+    }
+    return await res.blob();
+  }
