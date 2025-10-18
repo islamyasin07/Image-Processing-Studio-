@@ -1,4 +1,3 @@
-
 export type ValidParams =
   | { ok: true; filename: string; width: number; height: number }
   | { ok: false; status: 400 | 404; message: string };
@@ -6,10 +5,12 @@ export type ValidParams =
 const NUM_RE = /^\d+$/;
 const NAME_RE = /^[a-z]+$/i;
 
-export function validateQuery(q: any): ValidParams {
-  const { filename, width, height } = q ?? {};
+export function validateQuery(q: Record<string, unknown>): ValidParams {
+  const filename = q.filename;
+  const width = q.width;
+  const height = q.height;
 
-  if (!filename || typeof filename !== 'string') {
+  if (typeof filename !== 'string' || filename.trim() === '') {
     return { ok: false, status: 400, message: 'Missing "filename".' };
   }
   if (!NAME_RE.test(filename)) {

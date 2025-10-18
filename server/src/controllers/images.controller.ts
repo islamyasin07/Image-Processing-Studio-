@@ -6,15 +6,18 @@ import { validateQuery } from '../utils/validate';
 import { originalExists, listOriginals } from '../utils/file';
 import { resize } from '../services/resize.service';
 
-export const getImage = async (req: Request, res: Response, _next: NextFunction) => {
+export const getImage = async (
+  req: Request,
+  res: Response,
+  _next: NextFunction
+) => {
   try {
-    
     const v = validateQuery(req.query);
     if (!v.ok) {
       return res.status(v.status).json({ error: v.message });
     }
 
-    const { filename, width, height } = v; 
+    const { filename, width, height } = v;
     const baseName = path.parse(filename).name;
     const originalPath = path.resolve(config.ASSETS_FULL, `${baseName}.jpg`);
 
@@ -33,12 +36,17 @@ export const getImage = async (req: Request, res: Response, _next: NextFunction)
 
     return res.sendFile(cachePath);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    const message =
+      err instanceof Error ? err.message : 'Internal Server Error';
     return res.status(500).json({ error: message });
   }
 };
 
-export const listImages = async (_req: Request, res: Response, _next: NextFunction) => {
+export const listImages = async (
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+) => {
   try {
     const items = await listOriginals();
     const names = items
@@ -47,7 +55,8 @@ export const listImages = async (_req: Request, res: Response, _next: NextFuncti
 
     return res.status(200).json({ images: names });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    const message =
+      err instanceof Error ? err.message : 'Internal Server Error';
     return res.status(500).json({ error: message });
   }
 };

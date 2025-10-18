@@ -1,9 +1,10 @@
 import fs from 'fs/promises';
+import { Dirent } from 'fs';
 import { config } from '../config';
 
-export async function originalExists(p: string): Promise<boolean> {
+export async function originalExists(fullPath: string): Promise<boolean> {
   try {
-    await fs.access(p);
+    await fs.access(fullPath);
     return true;
   } catch {
     return false;
@@ -12,10 +13,11 @@ export async function originalExists(p: string): Promise<boolean> {
 
 export async function listOriginals(): Promise<string[]> {
   try {
-    const items = await fs.readdir(config.ASSETS_FULL);
-    return items; 
-  } catch (e: any) {
-    if (e?.code === 'ENOENT') return [];
-    throw e;
+    const dirents: Dirent[] = await fs.readdir(config.ASSETS_FULL, {
+      withFileTypes: true,
+    });
+    return dirents.filter((d) => d.isFile()).map((d) => d.name);
+  } catch {
+    return [];
   }
 }

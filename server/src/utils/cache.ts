@@ -2,7 +2,11 @@ import fs from 'fs/promises';
 import path from 'path';
 import { config } from '../config';
 
-export function getCachePath(basename: string, width: number, height: number): string {
+export function getCachePath(
+  basename: string,
+  width: number,
+  height: number
+): string {
   const name = `${basename}_${width}x${height}.jpg`;
   return path.resolve(config.CACHE_DIR, name);
 }

@@ -5,7 +5,7 @@ import request from 'supertest';
 import app from '../app';
 import { config } from '../config';
 
-const FIXTURE = 'specfixture'; 
+const FIXTURE = 'specfixture';
 
 async function ensureFixture() {
   const full = path.resolve(config.ASSETS_FULL, `${FIXTURE}.jpg`);
