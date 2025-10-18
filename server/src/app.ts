@@ -30,9 +30,7 @@ app.get('/', (_req, res) => {
 </body></html>`);
 });
 
-/**
- * Error handler: always return JSON and avoid `any`.
- */
+
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   type ErrShape = { status?: unknown; message?: unknown; details?: unknown };
 
